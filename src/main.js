@@ -1,5 +1,14 @@
 import Vue from 'vue'
-import App from './App.vue'
+import App from './App'
+
+import LvFormDesign from '../packages/';
+import Element from 'element-ui'
+// import AvueUeditor from 'avue-plugin-ueditor'
+
+Vue.use(window.AVUE)
+Vue.use(LvFormDesign)
+Vue.use(Element)
+// Vue.use(AvueUeditor)
 
 Vue.config.productionTip = false
 
