@@ -1,9 +1,8 @@
 <template>
     <div class="form-designer">
-        <el-button>hello world!!!</el-button>
         <el-container>
             <!-- 左侧字段 -->
-            <el-aside width="300">
+            <el-aside :width="leftWidth">
                 <div class="fields-list">
                     <template v-if="customFields && customFields.length > 0">
                         <template v-if="customFields[0].title && customFields[0].list && customFields[0].list.length > 0">
@@ -59,7 +58,7 @@
                                        @click="widgetForm = handleRedo()">重做</el-button>
                         </template>
                     </div>
-                    <div>
+                    <div style="display: flex; align-items: center;">
                         <slot name="toolbar-left"></slot>
                         <el-button v-if="toolbar.includes('import')"
                                    type="text"
@@ -71,6 +70,11 @@
                                    size="medium"
                                    icon="el-icon-download"
                                    @click="handleGenerateJson">导入JSON</el-button>
+                        <el-button v-if="toolbar.includes('preview')"
+                                    type="text"
+                                    size="medium"
+                                    icon="el-icon-view"
+                                    @click="handlePreview">预览</el-button>
                         <el-button v-if="toolbar.includes('clear')"
                                    class="danger"
                                    type="text"
@@ -89,8 +93,21 @@
             </el-container>
 
             <!-- 右侧配置 -->
-            <el-aside class="widget-config-container" width="300">
-                <div></div>
+            <el-aside class="widget-config-container" :width="rightWidth">
+                <el-tabs v-model="configTab"
+                         stretch>
+                    <el-tab-pane label="字段属性"
+                                 name="widget"
+                                 style="padding: 0 10px">
+                        <widget-config></widget-config>
+                    </el-tab-pane>
+                    <el-tab-pane label="表单属性"
+                                 name="form"
+                                 lazy
+                                 style="padding: 0 10px">
+                        <form-config></form-config>
+                    </el-tab-pane>
+                </el-tabs>
             </el-aside>
 
             <!-- 弹窗 -->
@@ -109,13 +126,19 @@
 
 <script>
 import fields from './fieldsConfig.js'
-import Draggable from 'vuedraggable';
 import widgetEmpty from './assets/widget-empty.png'
+import history from './mixins/history'
+
+import Draggable from 'vuedraggable';
+
+import WidgetForm from './WidgetForm'
 export default {
     name: "FormDesign",
     components: {
-        Draggable
+        Draggable,
+        WidgetForm
     },
+    mixins: [history],
     props: {
         options: {
             type: [Object, String],
@@ -124,6 +147,14 @@ export default {
                 column: []
                 }
             }
+        },
+        asideLeftWidth: {
+            type: [String, Number],
+            default: '270px'
+        },
+        asideRightWidth: {
+            type: [String, Number],
+            default: '380px'
         },
         includeFields: {
             type: Array,
@@ -150,6 +181,22 @@ export default {
             type: Boolean,
             default: true
         },
+    },
+    computed: {
+        leftWidth() {
+            if (typeof this.asideLeftWidth == 'string') {
+                return this.asideLeftWidth
+            } else {
+                return `${this.asideLeftWidth}px`
+            }
+        },
+        rightWidth() {
+            if (typeof this.asideRightWidth == 'string') {
+                return this.asideRightWidth
+            } else {
+                return `${this.asideRightWidth}px`
+            }
+        }
     },
     data() {
         return{
