@@ -39,8 +39,40 @@
                                                 @change="$emit('change')">
                             </widget-form-group>
                         </div>
-                        <el-col v-else>
-                            <el-form-item class="widget-form-item"></el-form-item>
+                        <el-col v-else
+                                :key="index"
+                                :md="column.span || 12"
+                                :xs="24"
+                                :offset="column.offset || 0">
+                            <el-form-item class="widget-form-item"
+                                          :label="column.label"
+                                          :labelWidth="column.labelWidth && (column.labelWidth + 'px')"
+                                          :prop="column.prop"
+                                          :class="[{active: selectWidget.prop == column.prop, 'required': column.required}, 'avue-form__item--' + column.labelPosition || '']"
+                                          @click.native="handleSelectWidget(index)">
+                                <widget-form-item :item="column"
+                                                  :param="column.params"></widget-form-item>
+                                <el-button title="删除"
+                                           @click.stop="handleWidgetDelete(index)"
+                                           class="widget-action-delete"
+                                           v-if="selectWidget.prop == column.prop"
+                                           circle
+                                           plain
+                                           size="small"
+                                           type="danger">
+                                    <i class="iconfont icon-delete"></i>
+                                </el-button>
+                                <el-button title="复制"
+                                           @click.stop="handleWidgetClone(index)"
+                                           class="widget-action-clone"
+                                           v-if="selectWidget.prop == column.prop"
+                                           circle
+                                           plain
+                                           size="small"
+                                           type="primary">
+                                    <i class="iconfont icon-copy"></i>
+                                </el-button>
+                            </el-form-item>
                         </el-col>
                     </template>
                 </draggable>
@@ -50,12 +82,71 @@
 </template>
 
 <script>
+import WidgetFormItem from './WidgetFormItem'
+import WidgetFormTable from './WidgetFormTable'
+import WidgetFormGroup from './WidgetFormGroup'
 import Draggable from 'vuedraggable';
 
 
 export default {
     name: "widget-form",
     props: ["data", "select"],
-    components: { Draggable }
+    components: { Draggable, WidgetFormItem, WidgetFormTable, WidgetFormGroup },
+    data() {
+        return {
+            selectWidget: this.select,
+            form: {},
+        }
+    },
+    watch: {
+        select(val) {
+            this.selectWidget = val;
+        },
+        selectWidget: {
+            handler(val) {
+                this.$emit('update:select', val)
+            },
+            deep: true,
+        }
+    },
+    methods: {
+        handleSelectWidget(index) {
+            this.selectWidget = this.data.column[index]
+        },
+        handleWidgetAdd(evt) {
+            const newIndex = evt.newIndex;
+            const data = this.deepClone(this.data.column[newIndex]);
+            if (!data.prop) data.prop = 'a' + Date.now() + Math.ceil(Math.random() * 99999);
+            delete data.icon
+            delete data.subfield
+            if (data.type == 'title') {
+                delete data.label
+                this.form[data.prop] = data.value
+            }
+            this.$set(this.data.column, newIndex, data)
+            this.handleSelectWidget(newIndex)
+            this.$emit("change")
+        },
+        handleWidgetDelete(index) {
+            if (this.data.column.length - 1 === index) {
+                if (index == 0) this.selectWidget = {};
+                else this.handleSelectWidget(index - 1)
+            } else this.handleSelectWidget(index + 1);
+
+            this.$nextTick(() => {
+                this.data.column.splice(index, 1);
+                this.$emit("change")
+            })
+        },
+        handleWidgetClone(index) {
+            let cloneData = this.deepClone(this.data.column[index]);
+            cloneData.prop = 'a' + Date.now() + Math.ceil(Math.random() * 99999)
+            this.data.column.push(cloneData);
+            this.$nextTick(() => {
+                this.handleSelectWidget(this.data.column.length - 1)
+                this.$emit("change")
+            })
+        }
+    }
 }
 </script>
