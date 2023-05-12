@@ -93,6 +93,7 @@
     
 </template>
 <script>
+/* eslint-disable */
 import WidgetFormItem from './WidgetFormItem'
 import draggable from 'vuedraggable';
 

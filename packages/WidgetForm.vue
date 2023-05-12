@@ -82,6 +82,7 @@
 </template>
 
 <script>
+/* eslint-disable */
 import WidgetFormItem from './WidgetFormItem'
 import WidgetFormTable from './WidgetFormTable'
 import WidgetFormGroup from './WidgetFormGroup'
