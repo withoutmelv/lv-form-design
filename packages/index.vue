@@ -99,13 +99,14 @@
                     <el-tab-pane label="字段属性"
                                  name="widget"
                                  style="padding: 0 10px">
-                        <widget-config></widget-config>
+                        <widget-config :data="widgetFormSelect"
+                                       :default-values="defaultValues"></widget-config>
                     </el-tab-pane>
                     <el-tab-pane label="表单属性"
                                  name="form"
                                  lazy
                                  style="padding: 0 10px">
-                        <form-config></form-config>
+                        <form-config :data="widgetForm"></form-config>
                     </el-tab-pane>
                 </el-tabs>
             </el-aside>
@@ -132,11 +133,15 @@ import history from './mixins/history'
 import Draggable from 'vuedraggable';
 
 import WidgetForm from './WidgetForm'
+import FormConfig from './FormConfig'
+import WidgetConfig from './WidgetConfig'
 export default {
     name: "FormDesign",
     components: {
         Draggable,
-        WidgetForm
+        WidgetForm,
+        FormConfig, 
+        WidgetConfig
     },
     mixins: [history],
     props: {
@@ -182,6 +187,14 @@ export default {
             default: true
         },
     },
+    watch: {
+        widgetFormSelect: {
+            handler() {
+                if (this.configTab == 'form') this.configTab = 'widget'
+            },
+            deep: true
+        }
+    },
     computed: {
         leftWidth() {
             if (typeof this.asideLeftWidth == 'string') {
@@ -219,7 +232,8 @@ export default {
                 index: 0, // 当前下标
                 maxStep: 20, // 最大记录步数
                 steps: [], // 历史步数
-            }
+            },
+            configTab: 'form',
         }
     },
     methods: {
