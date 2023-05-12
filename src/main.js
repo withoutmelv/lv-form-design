@@ -3,9 +3,12 @@ import App from './App'
 
 import LvFormDesign from '../packages/';
 import Element from 'element-ui'
-// import AvueUeditor from 'avue-plugin-ueditor'
+import Avue from '@smallwei/avue';
+import 'element-ui/lib/theme-chalk/index.css';
+import '@smallwei/avue/lib/index.css';
 
-Vue.use(window.AVUE)
+// import AvueUeditor from 'avue-plugin-ueditor'
+Vue.use(Avue);
 Vue.use(LvFormDesign)
 Vue.use(Element)
 // Vue.use(AvueUeditor)
