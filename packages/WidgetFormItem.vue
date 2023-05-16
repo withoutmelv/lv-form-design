@@ -22,7 +22,7 @@
 import { filterDicProps } from './utils';
 export default {
     name: 'widget-form-item',
-    prop: {
+    props: {
         item: {
             type: Object,
             default() {
@@ -47,7 +47,7 @@ export default {
                 }) : this.item.rules
             })
             let event = ['change', 'blur', 'click', 'focus']
-            event.forEach(e => delete vBind(e))
+            event.forEach(e => delete vBind[e])
             if (vBind.event) delete vBind.event
             return vBind
         }
@@ -75,7 +75,7 @@ export default {
             else if (type === 'switch') result = 'switch';
             else if (type === 'rate') result = 'rate';
             else if (type === 'upload') result = 'upload';
-            else if (type === 'slider') result = 'result';
+            else if (type === 'slider') result = 'slider';
             else if (type === 'dynamic') result = 'dynamic';
             else if (type === 'icon') result = 'input-icon';
             else if (type === 'color') result = 'input-color';
