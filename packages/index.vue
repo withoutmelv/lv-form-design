@@ -69,7 +69,7 @@
                                    type="text"
                                    size="medium"
                                    icon="el-icon-download"
-                                   @click="handleGenerateJson">导入JSON</el-button>
+                                   @click="handleGenerateJson">生成JSON</el-button>
                         <el-button v-if="toolbar.includes('preview')"
                                     type="text"
                                     size="medium"
@@ -113,10 +113,90 @@
 
             <!-- 弹窗 -->
             <!-- 导入JSON -->
-            <el-drawer title="导入JSON">
+            <el-drawer title="导入JSON"
+                        :visible.sync="importJsonVisible"
+                        size="50%"
+                        append-to-body
+                        destory-on-close>
+                <monaco-editor v-model="importJson"
+                                keyIndex="import"
+                                height="82%"></monaco-editor>
+                <div class="afd-drawer-foot">
+                    <el-button size="medium"
+                                type="primary"
+                                @click="handleImportJsonSubmit">确定</el-button>
+                    <el-button size="medium"
+                                type="danger"
+                                @click="importJsonVisible = false">取消</el-button>
+                </div>
             </el-drawer>
             <!-- 生成JSON -->
-            <el-drawer title="生成JSON">
+            <el-drawer title="生成JSON"
+                        :visible.sync="generateJsonVisible"
+                        size="50%"
+                        append-to-body
+                        destory-on-close>
+                <monaco-editor v-model="option"
+                                keyIndex="generate"
+                                height="82%"
+                                :read-only="true"></monaco-editor>
+                    <div class="afd-drawer-foot">
+                        <el-button size="medium"
+                                    @click="handleGenerate"></el-button>
+                        <el-popover placement="top"
+                                    trigger="hover"
+                                    width="350px">
+                                    <el-form v-model="configOption"
+                                                style="padding: 0 20px"
+                                                label-suffix="："
+                                                label-width="180px"
+                                                label-position="left">
+                                        <el-form-item label="类型">
+                                            <el-popover placement="top-start"
+                                                        trigger="hover"
+                                                        content="复制json对象"
+                                                        style="margin-right: 15px;">
+                                                <el-radio slot="reference"
+                                                            v-model="configOption.generateType"
+                                                            label="json">json</el-radio>
+                                                </el-popover>
+                                                <el-popover placement="top-start"
+                                                            trigger="hover"
+                                                            content="复制string字符串，可直接用于后端保存无需再次处理。">
+                                                <el-radio slot="reference"
+                                                            v-model="configOption.generateType"
+                                                            label="string">string</el-radio>
+                                            </el-popover>
+                                        </el-form-item>
+                                        <el-form-item label="缩进长度-空格数量">
+                                            <el-slider v-model="configOption.space"
+                                                    show-stops
+                                                    :marks="{ 1: '1', 2: '2', 3: '3', 4: '4' }"
+                                                    :min="1"
+                                                    :max="4"
+                                                    :step="1"></el-slider>
+                                        </el-form-item>
+                                        <el-form-item label="引号类型">
+                                            <el-switch v-model="configOption.quoteType"
+                                                    active-value="single"
+                                                    inactive-value="double"
+                                                    active-text="单引号"
+                                                    inactive-text="双引号"></el-switch>
+                                        </el-form-item>
+                                        <el-form-item label="移除key的引号">
+                                            <el-switch v-model="configOption.dropQuotesOnKeys"></el-switch>
+                                        </el-form-item>
+                                        <el-form-item label="移除数字字符串的引号">
+                                            <el-switch v-model="configOption.dropQuotesOnNumbers"></el-switch>
+                                        </el-form-item>
+                                        </el-form>
+                            <el-button size="medium"
+                                        type="primary"
+                                        @click="handleCopy"
+                                        slot="reference"
+                                        style="margin-left: 10px">复制</el-button>
+                        </el-popover>
+                    </div>
             </el-drawer>
             <!-- 预览 -->
             <el-drawer title="预览">
@@ -129,16 +209,18 @@
 import fields from './fieldsConfig.js'
 import widgetEmpty from './assets/widget-empty.png'
 import history from './mixins/history'
-
+import MonacoEditor from './utils/monaco-editor'
 import Draggable from 'vuedraggable';
 
 import WidgetForm from './WidgetForm'
 import FormConfig from './FormConfig'
 import WidgetConfig from './WidgetConfig'
+import { filterCommonDicProps, validatenull, filterDicProps } from './utils';
 export default {
     name: "FormDesign",
     components: {
         Draggable,
+        MonacoEditor,
         WidgetForm,
         FormConfig, 
         WidgetConfig
@@ -213,6 +295,9 @@ export default {
     },
     data() {
         return{
+            option: {},
+            generateJsonVisible: false,
+            importJsonVisible: false,
             fields,
             widgetEmpty,
             widgetForm: {
@@ -234,11 +319,208 @@ export default {
                 steps: [], // 历史步数
             },
             configTab: 'form',
+            configOption: {
+                generateType: 'json',
+                space: 2,
+                quoteType: 'single',
+                dropQuotesOnKeys: true
+            },
         }
     },
     methods: {
-        handleUndo() {
-            
+        transAvueOptionsToFormDesigner(obj) {
+            if (typeof obj === 'string') obj = eval("(" + obj + ")")
+            const data = this.deepClone(obj);
+            return new Promise((resolve, reject) => {
+                try {
+                    if (data.column && data.column.length > 0) {
+                        data.column.forEach(col => {
+                            if (col.type == 'dynamic' && col.children && col.children.column && col.children.column.length > 0) {
+                                const c = col.children.column;
+                                c.forEach(item => {
+                                    item.subfield = true
+                                })
+                                this.transAvueOptionsToFormDesigner(col.children).then(res => {
+                                    col.children = res;
+                                })
+                            } else if (['checkbox', 'radio', 'tree', 'cascader', 'select'].includes(col.type)) {
+                                if (!col.dicData && col.dicQuery && typeof col.dicQuery == 'object') {
+                                    const arr = [];
+                                    for (let key in col.dicQuery) {
+                                        arr.push({
+                                            key,
+                                            value: col.dicQuery[key],
+                                            $cellEdit: true,
+                                        })
+                                    }
+                                    col.dicQueryConfig = arr
+                                }
+                                if (col.dicUrl) col.dicOption = 'remote'
+                                else col.dicOption = 'static'
+                                if (!col.dicData) col.dicData = []
+                                else if (col.props) {
+                                    col.dicData = filterCommonDicProps(col.dicData, col.props)
+                                }
+                            } else if (['upload'].includes(col.type)) {
+                                if (col.headers && typeof col.headers == 'object') {
+                                    const arr = [];
+                                    for (let key in col.headers) {
+                                        arr.push({
+                                            key,
+                                            value: col.headers[key],
+                                            $cellEdit: true
+                                        })
+                                    }
+                                    col.headersConfig = arr
+                                } else col.headersConfig = [];
+
+                                if (col.data && typeof col.data == 'object') {
+                                    const arr = [];
+                                    for (let key in col.data) {
+                                        arr.push({
+                                            key,
+                                            value: col.data[key],
+                                            $cellEdit: true,
+                                        })
+                                    }
+                                    col.dataConfig = arr
+                                } else col.dataConfig = [];
+                            }
+                        })
+                    }
+                    if (data.group && data.group.length > 0) {
+                        for (let i = 0; i < data.group.length; i++) {
+                            if (!data.column) data.column = [];
+                            const col = dta.group[i]
+
+                            const group = {
+                                type: 'group',
+                                label: col.label,
+                                icon: col.icon,
+                                prop: col.prop,
+                                arrow: col.arrow,
+                                collapse: col.collapse,
+                                display: col.display
+                            }
+                            this.transAvueOptionsToFormDesigner(col).then(res => {
+                                group.children = res;
+                                data.column.push(group)
+                            })
+                        }
+                        delete data.group
+                    }
+                    resolve(data)
+                } catch (e) {
+                    reject(e)
+                }
+            })
+        },
+        handleImportJsonSubmit() {
+            try{
+                this.transAvueOptionsToFormDesigner(this.importJson).then(res => {
+                    this.widgetForm = res;
+                    this.importJsonVisible = false;
+                    this.handleHistoryChange(this.widgetForm);
+                })
+            } catch(e) {
+                this.$message.error(e.message)
+            }
+        },
+        transformToAvueOptions(obj, isPreview = false) {
+            const _this = this
+            return new Promise((resolve, reject) => {
+                try {
+                    const data = _this.deepClone(obj)
+                    for (let key in data) {
+                        if (validatenull(data[key])) delete data[key]
+                    }
+                    for (let i = 0; i < data.column.length; i++) {
+                        const col = data.column[i]
+
+                        if (isPreview) {// 预览调整事件中的this指向
+                            let event = ['change', 'blur', 'click', 'focus']
+                            event.forEach(e => {
+                                if (col[e]) col[e] = eval((col[e] + '').replace(/this/g, '_this'))
+                            })
+                            if (col.event) Object.keys(col.event).forEach(key => col.event[key] = eval((col.event[key] + '').replace(/this/g, '_this')))
+                        }
+
+                        if (col.type == 'dynamic' && col.children && col.children.column && col.children.column.length > 0) {
+                            const c = col.children.column;
+                            c.forEach(item => {
+                                delete item.subfield
+                            })
+                            this.transformToAvueOptions(col.children, isPreview).then(res => {
+                                col.children = res
+                            })
+                        } else if (col.type == 'group') {
+                            if (!data.group) data.group = [];
+                            const group = {
+                                label: col.label,
+                                icon: col.icon,
+                                prop: col.prop,
+                                arrow: col.arrow,
+                                collapse: col.collapse,
+                                display: col.display,
+                            }
+                            this.transformToAvueOptions(col.children, isPreview).then(res => {
+                                group.column = res.column;
+                                data.group.push(group)
+                            })
+                            data.column.splice(i, 1)
+                            i--
+                        } else if (['checkbox', 'radio', 'tree', 'cascader', 'select'].includes(col.type)) {
+                            if (col.dicOption == 'static') {
+                                delete col.dicUrl
+                                delete col.dicMethod
+                                delete col.dicQuery
+                                delete col.dicQueryConfig
+                                col.dicData = filterDicProps(col.dicData, col.props)
+                            } else if (col.dicOption == 'remote') {
+                                delete col.dicData
+                                if (col.dicQueryConfig && col.dicQueryConfig.length > 0) {
+                                    const query = {}
+                                    col.dicQueryConfig.forEach(q => {
+                                        if (q.key && q.value) query[q.key] = q.value
+                                    })
+                                    col.dicQuery = query
+                                    delete col.dicOption
+                                }
+                            }
+                            delete dic.dicOption
+                        } else if (['upload'].includes(col.type)) {
+                            if (col.headersConfig && col.headersConfig.length > 0) {
+                                const headers = {}
+                                col.headersConfig.forEach(h => {
+                                    if (h.key && h.value) headers[h.key] = h.value
+                                })
+                                col.headers = headers
+                            } else delete col.headers
+                            delete col.headersConfig
+
+                            if (col.dataConfig && col.dataConfig.length > 0) {
+                                const data = {};
+                                col.dataConfig.forEach(h => {
+                                    if (h.key && h.value) data[h.key] = h.value
+                                })
+                                col.data = data
+                            } else delete col.data
+                            delete col.dataConfig
+                        }
+                        for (let key in col) {
+                            if (validatenull(col[key])) delete col[key]
+                        }
+                    }
+                } catch (e) {
+                    reject(e)
+                }
+            })
+        },
+        handleGenerateJson() {
+            this.transformToAvueOptions(this.widgetForm).then(data => {
+                this.option = data
+                this.generateJsonVisible = true
+            })
         }
     }
 }
