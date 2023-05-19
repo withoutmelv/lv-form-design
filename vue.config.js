@@ -6,6 +6,12 @@ function resolve(dir) {
 }
 module.exports = defineConfig({
   transpileDependencies: true,
+  productionSourceMap: false,
+  configureWebpack: {
+    output: {
+      libraryExport: 'default'
+    }
+  },
   chainWebpack: (config) => {
     config.resolve.alias
       .set('@', resolve('packages'))
@@ -19,4 +25,11 @@ module.exports = defineConfig({
         maxChunks: 1
       }])
   },
+  devServer: {
+    open: true
+  },
+
+  css: {
+    extract: false
+  }
 })

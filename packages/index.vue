@@ -349,7 +349,54 @@ export default {
             },
         }
     },
+    mounted() {
+        this.handleLoadStorage()
+        this.handleLoadCss()
+    },
     methods: {
+        // 组件初始化时加载本地存储中的options(需开启storage),若不存在则读取用户配置的options
+        async handleLoadStorage() {
+            let options = this.options
+            if (typeof options == 'string') {
+                try {
+                options = eval('(' + options + ')')
+                } catch (e) {
+                console.error('非法配置')
+                options = { column: [] }
+                }
+            }
+            if (!options.column) options.column = []
+            this.widgetForm = this.initHistory({
+                index: 0,
+                maxStep: 20,
+                steps: [await this.transAvueOptionsToFormDesigner({ ...this.widgetForm, ...options })],
+                storage: this.storage
+            })
+
+            if (this.undoRedo) {
+                window.addEventListener('keydown', (evt) => {
+                // 监听 cmd + z / ctrl + z 撤销
+                if ((evt.metaKey && !evt.shiftKey && evt.keyCode == 90) || (evt.ctrlKey && !evt.shiftKey && evt.keyCode == 90)) {
+                    this.widgetForm = this.handleUndo()
+                }
+
+                // 监听 cmd + shift + z / ctrl + shift + z / ctrl + y 重做
+                if ((evt.metaKey && evt.shiftKey && evt.keyCode == 90) || (evt.ctrlKey && evt.shiftKey && evt.keyCode == 90) || (evt.ctrlKey && evt.keyCode == 89)) {
+                    this.widgetForm = this.handleRedo()
+                }
+                }, false)
+            }
+        },
+        // 加载icon
+        handleLoadCss() {
+            const head = document.getElementsByTagName('head')[0]
+            const script = document.createElement('link')
+            script.rel = 'stylesheet'
+            script.type = 'text/css'
+            script.href = 'https://at.alicdn.com/t/font_1254447_zc9iezc230c.css'
+            head.appendChild(script)
+            // this.loadScript('css', 'https://at.alicdn.com/t/font_1254447_zc9iezc230c.css')
+        },
         transAvueOptionsToFormDesigner(obj) {
             if (typeof obj === 'string') obj = eval("(" + obj + ")")
             const data = this.deepClone(obj);
