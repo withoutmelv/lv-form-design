@@ -142,54 +142,54 @@
                                 :read-only="true"></monaco-editor>
                     <div class="afd-drawer-foot">
                         <el-button size="medium"
-                                    @click="handleGenerate"></el-button>
+                                    @click="handleGenerate">生成</el-button>
                         <el-popover placement="top"
                                     trigger="hover"
                                     width="350px">
-                                    <el-form v-model="configOption"
-                                                style="padding: 0 20px"
-                                                label-suffix="："
-                                                label-width="180px"
-                                                label-position="left">
-                                        <el-form-item label="类型">
-                                            <el-popover placement="top-start"
-                                                        trigger="hover"
-                                                        content="复制json对象"
-                                                        style="margin-right: 15px;">
-                                                <el-radio slot="reference"
-                                                            v-model="configOption.generateType"
-                                                            label="json">json</el-radio>
-                                                </el-popover>
-                                                <el-popover placement="top-start"
-                                                            trigger="hover"
-                                                            content="复制string字符串，可直接用于后端保存无需再次处理。">
-                                                <el-radio slot="reference"
-                                                            v-model="configOption.generateType"
-                                                            label="string">string</el-radio>
-                                            </el-popover>
-                                        </el-form-item>
-                                        <el-form-item label="缩进长度-空格数量">
-                                            <el-slider v-model="configOption.space"
-                                                    show-stops
-                                                    :marks="{ 1: '1', 2: '2', 3: '3', 4: '4' }"
-                                                    :min="1"
-                                                    :max="4"
-                                                    :step="1"></el-slider>
-                                        </el-form-item>
-                                        <el-form-item label="引号类型">
-                                            <el-switch v-model="configOption.quoteType"
-                                                    active-value="single"
-                                                    inactive-value="double"
-                                                    active-text="单引号"
-                                                    inactive-text="双引号"></el-switch>
-                                        </el-form-item>
-                                        <el-form-item label="移除key的引号">
-                                            <el-switch v-model="configOption.dropQuotesOnKeys"></el-switch>
-                                        </el-form-item>
-                                        <el-form-item label="移除数字字符串的引号">
-                                            <el-switch v-model="configOption.dropQuotesOnNumbers"></el-switch>
-                                        </el-form-item>
-                                        </el-form>
+                            <el-form v-model="configOption"
+                                        style="padding: 0 20px"
+                                        label-suffix="："
+                                        label-width="180px"
+                                        label-position="left">
+                                <el-form-item label="类型">
+                                    <el-popover placement="top-start"
+                                                trigger="hover"
+                                                content="复制json对象"
+                                                style="margin-right: 15px;">
+                                        <el-radio slot="reference"
+                                                    v-model="configOption.generateType"
+                                                    label="json">json</el-radio>
+                                        </el-popover>
+                                        <el-popover placement="top-start"
+                                                    trigger="hover"
+                                                    content="复制string字符串，可直接用于后端保存无需再次处理。">
+                                            <el-radio slot="reference"
+                                                    v-model="configOption.generateType"
+                                                    label="string">string</el-radio>
+                                        </el-popover>
+                                </el-form-item>
+                                <el-form-item label="缩进长度-空格数量">
+                                    <el-slider v-model="configOption.space"
+                                            show-stops
+                                            :marks="{ 1: '1', 2: '2', 3: '3', 4: '4' }"
+                                            :min="1"
+                                            :max="4"
+                                            :step="1"></el-slider>
+                                </el-form-item>
+                                <el-form-item label="引号类型">
+                                    <el-switch v-model="configOption.quoteType"
+                                            active-value="single"
+                                            inactive-value="double"
+                                            active-text="单引号"
+                                            inactive-text="双引号"></el-switch>
+                                </el-form-item>
+                                <el-form-item label="移除key的引号">
+                                    <el-switch v-model="configOption.dropQuotesOnKeys"></el-switch>
+                                </el-form-item>
+                                <el-form-item label="移除数字字符串的引号">
+                                    <el-switch v-model="configOption.dropQuotesOnNumbers"></el-switch>
+                                </el-form-item>
+                            </el-form>
                             <el-button size="medium"
                                         type="primary"
                                         @click="handleCopy"
@@ -199,7 +199,21 @@
                     </div>
             </el-drawer>
             <!-- 预览 -->
-            <el-drawer title="预览">
+            <el-drawer title="预览"
+                        :visible.sync="previewVisible"
+                        size="60%"
+                        append-to-body
+                        :before-close="handleBeforeClose">
+                <avue-form v-if="previewVisible"
+                            ref="form"
+                            class="afd-preview-form"
+                            :option="option"
+                            v-model="form"
+                            @submit="handlePreviewSubmit"></avue-form>
+                <div class="afd-drawer-foot">
+                    <el-button size="medium" type="primary" @click="handlePreviewSubmit">确认</el-button>
+                    <el-button size="medium" type="danger" @click="handleBeforeClose">取消</el-button>
+                </div>
             </el-drawer>
         </el-container>
     </div>
@@ -209,6 +223,7 @@
 import fields from './fieldsConfig.js'
 import widgetEmpty from './assets/widget-empty.png'
 import history from './mixins/history'
+import beautifier from './utils/json-beautifier'
 import MonacoEditor from './utils/monaco-editor'
 import Draggable from 'vuedraggable';
 
@@ -268,6 +283,9 @@ export default {
             type: Boolean,
             default: true
         },
+        defaultValues: {
+            type: Object
+        },
     },
     watch: {
         widgetFormSelect: {
@@ -295,11 +313,15 @@ export default {
     },
     data() {
         return{
+            widgetFormSelect: {},
+            previewVisible: false,
             option: {},
+            form: {},
             generateJsonVisible: false,
             importJsonVisible: false,
             fields,
             widgetEmpty,
+            importJson: {},
             widgetForm: {
                 column: [],
                 labelPosition: 'left',
@@ -487,7 +509,7 @@ export default {
                                     delete col.dicOption
                                 }
                             }
-                            delete dic.dicOption
+                            delete col.dicOption
                         } else if (['upload'].includes(col.type)) {
                             if (col.headersConfig && col.headersConfig.length > 0) {
                                 const headers = {}
@@ -511,6 +533,7 @@ export default {
                             if (validatenull(col[key])) delete col[key]
                         }
                     }
+                    resolve(data)
                 } catch (e) {
                     reject(e)
                 }
@@ -521,7 +544,76 @@ export default {
                 this.option = data
                 this.generateJsonVisible = true
             })
-        }
+        },
+        handleGenerate() {
+            this.transformToAvueOptions(this.widgetForm).then(data => {
+                if (this.configOption.generateType && this.configOption.generateType == 'string')
+                    this.$emit('submit', beautifier(data, {
+                        minify: true,
+                        ...this.configOption
+                    }))
+                else 
+                    this.$emit('submit', data)
+            })
+        },
+        handleCopy() {
+            this.transformToAvueOptions(this.widgetForm).then(data => {
+                this.$Clipboard({
+                    text: beautifier(data, {
+                        minify: true,
+                        ...this.configOption
+                    })
+                }).then(() => {
+                    this.$message.success('复制成功')
+                }).error(() => {
+                    this.$message.error('复制失败')
+                })
+            })
+        },
+        handleClear() {
+            if (this.widgetForm && this.widgetForm.column && this.widgetForm.column.length > 0) {
+                this.$confirm('确定要清空吗？', '警告', {
+                    type: 'warning'
+                }).then(() => {
+                    this.$set(this.widgetForm, 'column', [])
+                    this.$set(this, 'form', {})
+                    this.$set(this, 'widgetFormSelect', {})
+                    this.handleHistoryChange(this.widgetForm)
+                }).catch(() => {
+                })
+            } else this.$message.error("没有需要清空的内容")
+        },
+        handlePreview() {
+            if (!this.widgetForm.column || this.widgetForm.column.length == 0) this.$message.error("没有需要展示的内容")
+            else {
+                this.transformToAvueOptions(this.widgetForm, true).then(data => {
+                    this.option = data
+                    this.previewVisible = true
+                })
+            }
+        },
+        handleBeforeClose() {
+            this.$refs.form.resetForm()
+            this.form = {}
+            this.previewVisible = false
+        },
+        handlePreviewSubmit(form, done) {
+            if (done) {
+                this.$alert(this.form).then(() => {
+                    done()
+                }).catch(() => {
+                    done()
+                })
+            } else {
+                this.$refs.form.validate((valid, done) => {
+                    if (valid) this.$alert(this.form).then(() => {
+                        done()
+                    }).catch(() => {
+                        done()
+                    })
+                })
+            }
+        },
     }
 }
 </script>
