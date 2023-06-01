@@ -359,10 +359,10 @@ export default {
             let options = this.options
             if (typeof options == 'string') {
                 try {
-                options = eval('(' + options + ')')
+                    options = eval('(' + options + ')')
                 } catch (e) {
                 console.error('非法配置')
-                options = { column: [] }
+                    options = { column: [] }
                 }
             }
             if (!options.column) options.column = []
