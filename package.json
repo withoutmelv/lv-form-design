@@ -1,7 +1,8 @@
 {
   "name": "lv-form-design",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.0.1",
+  "private": false,
+  "main": "lib/index.umd.min.js",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
@@ -30,5 +31,19 @@
     "> 1%",
     "last 2 versions",
     "not dead"
-  ]
+  ],
+  "keywords": [
+    "lv-form-design"
+  ],
+  "author": {
+    "name": "Withoutmelv",
+    "url": "https://github.com/Withoutmelv",
+    "email": "781033189@qq.com"
+  },
+  "repository": {
+    "type": "github",
+    "url": "https://github.com/Withoutmelv/lv-form-design"
+  },
+  "homepage": "https://lv-form-design.vercel.app/",
+  "license": "MIT"
 }
