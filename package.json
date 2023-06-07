@@ -1,6 +1,6 @@
 {
   "name": "lv-form-design",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": false,
   "main": "lib/index.umd.min.js",
   "scripts": {
