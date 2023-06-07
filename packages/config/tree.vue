@@ -205,7 +205,7 @@
   </div>
 </template>
 <script>
-import MonacoEditor from '@utils/monaco-editor'
+import MonacoEditor from '../utils/monaco-editor'
 
 export default {
   name: "config-tree",
