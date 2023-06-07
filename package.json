@@ -1,6 +1,6 @@
 {
   "name": "lv-form-design",
-  "version": "0.0.3",
+  "version": "0.0.6",
   "private": false,
   "main": "lib/index.umd.min.js",
   "scripts": {
@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "vuedraggable": "^2.24.3",
-    "monaco-editor": "^0.30.1"
+    "monaco-editor": "^0.30.1",
+    "@smallwei/avue": "^2.10.12"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
@@ -21,7 +22,6 @@
     "sass": "^1.62.0",
     "sass-loader": "^13.2.2",
     "vue-template-compiler": "^2.6.14",
-    "@smallwei/avue": "^2.10.12",
     "axios": "^0.18.1",
     "core-js": "^3.8.3",
     "element-ui": "^2.15.13",

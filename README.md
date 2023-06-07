@@ -1,6 +1,4 @@
-项目页面主体
-    左                  中                  右
-    draggable           widgetForm         （widgetConfig + formConfig）
-        
-        
-        (widgetFormGroup + widgetFormItem + widgetFormTable)
+npm i lv-from-design
+
+
+import LvFormDesign from 'lv-form-design/src/index.js'

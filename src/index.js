@@ -1,6 +1,10 @@
-import FormDesign from './index.vue'
+import Config from '../packages/config'
+import FormDesign from '../packages/index.vue'
+import Avue from '@smallwei/avue';
 
 const install = (Vue) => {
+    Vue.use(Config)
+    Vue.use(Avue);
     Vue.component('Lv' + FormDesign.name, FormDesign)
 }
 
